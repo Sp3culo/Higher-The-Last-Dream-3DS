@@ -1,6 +1,7 @@
 #!/bin/bash
 
-cd ~/Projects/3DSProject
+cd ~/Projects/3DS_Visit_Caard
+pwd
 
 echo "Nettoyage..."
 make clean

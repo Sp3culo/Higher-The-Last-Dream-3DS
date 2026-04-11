@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PROJET=~/Projects/3DSProject
-FICHIER="$PROJET/Higher_Caard.3dsx"
+PROJET=~/Projects/3DS_Visit_Caard
+FICHIER="$PROJET/build/3ds/Higher_Caard.3dsx"
 
 if [ ! -f "$FICHIER" ]; then
     echo "3DSProject.3dsx introuvable, build en cours..."
