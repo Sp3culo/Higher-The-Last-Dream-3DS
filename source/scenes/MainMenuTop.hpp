@@ -1,6 +1,7 @@
 #pragma once
-#include "../scripts/UIAlign.hpp"
+#include "../scripts/SceneManager.hpp"
 #include "../scripts/Coroutine.hpp"
+#include "../scripts/PostFX.hpp"
 
 class MainMenuTop : public Scene
 {
@@ -11,11 +12,11 @@ public:
     float angle = 0.0f;
     float speed = 0.0f;
     bool rotating = false;
+    bool starting = false;
 
     MainMenuTop()
     {
         blinkCoroutine.start(0.5f);
-        audioManager.play("menu", false);
     }
 
     void update() override
@@ -30,17 +31,17 @@ public:
         touchPosition touch;
         hidTouchRead(&touch);
 
-        if (hidKeysHeld() & KEY_TOUCH)
+        if (!starting && (hidKeysDown() & KEY_TOUCH))
         {
+            starting = true;
             rotating = true;
             speed = 0.15f;
         }
 
         if (rotating)
         {
-            // Ease out : ralentit quand on approche de 2*PI
             float remaining = (2.0f * M_PI) - angle;
-            speed = 0.02f + 0.13f * (remaining / (2.0f * M_PI)); // décélère progressivement
+            speed = 0.02f + 0.13f * (remaining / (2.0f * M_PI));
 
             angle += speed;
 
@@ -49,18 +50,37 @@ public:
                 angle = 0.0f;
                 speed = 0.0f;
                 rotating = false;
+
+                if (starting)
+                {
+                    goToTop("GameTop");
+                    goToBot("GameBot");
+                }
             }
         }
     }
 
+    bool usesPostFX() const override { return true; }
+
     void draw(Renderer &r) override
     {
-        r.drawImage("background_top", 0, 0, 0);
+        r.beginLayer(0.8f);
+        C2D_Image bg = r.getImage("background_top", 0);
+        if (bg.subtex)
+            r.drawImage("background_top", 0, -6, 0, 412.0f / bg.subtex->width, 240.0f / bg.subtex->height);
+        r.endLayer();
 
-        // ↓ ICI dans draw(), remplace l'ancien drawImageRotated
+        r.beginLayer(-0.3f);
         float scaleX = 0.5f * cosf(angle);
         r.drawImageRotated("menu", 0, 135 + 64, 70 + 48, scaleX, 0.4f, 0.0f);
-        r.drawText("By Sp3culo & Le_Sims", 125, 170, 0.6f, C2D_Color32(255, 255, 255, 255));
+        r.endLayer();
+
+        if (postfx.capturing) return;
+
+        postfx.drawBloom();
+        postfx.drawVignette(r);
+
+        r.drawText("The Last Dream", 145, 170, 0.6f, C2D_Color32(255, 255, 255, 255));
 
         if (logoVisible)
         {

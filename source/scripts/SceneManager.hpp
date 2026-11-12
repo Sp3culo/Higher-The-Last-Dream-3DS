@@ -1,6 +1,5 @@
 #pragma once
 #include "./Renderer.hpp"
-#include "./AudioManager.hpp"
 
 class Scene
 {
@@ -8,6 +7,7 @@ public:
     virtual ~Scene() {}
     virtual void update() = 0;
     virtual void draw(Renderer &r) = 0;
+    virtual bool usesPostFX() const { return false; }
 };
 
 class SceneManager
@@ -15,26 +15,23 @@ class SceneManager
 public:
     Scene *current = nullptr;
     Scene *next = nullptr;
+    int generation = 0;
     float fade = 0.0f;
     bool fadingOut = false;
-    float eyeOffset = 0.0f;
 
-    // Dimensions de l'écran associé à ce manager
     float screenW = 400.0f;
     float screenH = 240.0f;
 
-    // Constructeur avec dimensions (défaut = écran du haut)
     SceneManager(float w = 400.0f, float h = 240.0f)
         : screenW(w), screenH(h) {}
 
+    // Change de scène avec un fondu au noir
     void set(Scene *scene)
     {
         next = scene;
         fadingOut = true;
         fade = 0.0f;
     }
-
-    void setEyeOffset(float offset) { eyeOffset = offset; }
 
     void update()
     {
@@ -48,6 +45,7 @@ public:
                 delete current;
                 current = next;
                 next = nullptr;
+                generation++;
             }
         }
         else if (fade > 0.0f)
@@ -65,10 +63,7 @@ public:
     {
         if (current)
         {
-            // Applique le décalage 3D stéréoscopique
-            C2D_ViewTranslate(eyeOffset, 0.0f);
             current->draw(r);
-            C2D_ViewReset(); // Reset après le draw !
         }
 
         if (fade > 0.0f)
@@ -80,10 +75,8 @@ public:
     }
 };
 
-// Deux managers — un par écran
-extern SceneManager sceneManagerTop; // 400x240
-extern SceneManager sceneManagerBot; // 320x240
-extern AudioManager audioManager;
+extern SceneManager sceneManagerTop;
+extern SceneManager sceneManagerBot;
 
 Scene *createScene(const char *name);
 void goToTop(const char *name);

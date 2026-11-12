@@ -3,6 +3,7 @@
 #include <citro2d.h>
 #include <string>
 #include <map>
+#include <cmath>
 
 class Renderer
 {
@@ -11,6 +12,23 @@ public:
     C2D_Font font = nullptr;
     std::map<std::string, C2D_SpriteSheet> sheets;
     bool active = true;
+
+    float eyeShift = 0.0f;
+
+    // Décale les dessins suivants selon la profondeur 3D (effet stéréo)
+    void beginLayer(float depth)
+    {
+        if (layerCount < MAX_LAYERS) C2D_ViewSave(&layerStack[layerCount]);
+        layerCount++;
+        C2D_ViewTranslate(roundf(eyeShift * depth), 0.0f);
+    }
+
+    void endLayer()
+    {
+        if (layerCount <= 0) return;
+        layerCount--;
+        if (layerCount < MAX_LAYERS) C2D_ViewRestore(&layerStack[layerCount]);
+    }
 
     Renderer()
     {
@@ -31,6 +49,7 @@ public:
         romfsExit();
     }
 
+    // Charge une feuille de sprites .t3x sous un nom
     void loadSheet(const std::string &key, const std::string &path)
     {
         C2D_SpriteSheet sheet = C2D_SpriteSheetLoad(path.c_str());
@@ -47,7 +66,7 @@ public:
         C2D_DrawRectSolid(x, y, 0, w, h, color);
     }
 
-    void drawImage(const std::string &key, int index, float x, float y, float sizeX = 1.0f, float sizeY = 1.0f)
+    void drawImage(const std::string &key, int index, float x, float y, float sizeX = 1.0f, float sizeY = 1.0f, float alpha = 1.0f)
     {
         auto it = sheets.find(key);
         if (it == sheets.end())
@@ -58,7 +77,14 @@ public:
         C2D_SpriteSetCenter(&sprite, 0.0f, 0.0f);
         C2D_SpriteSetPos(&sprite, x, y);
         C2D_SpriteSetScale(&sprite, sizeX, sizeY);
-        C2D_DrawSprite(&sprite);
+        if (alpha >= 1.0f)
+        {
+            C2D_DrawSprite(&sprite);
+            return;
+        }
+        C2D_ImageTint tint;
+        C2D_AlphaImageTint(&tint, alpha);
+        C2D_DrawSpriteTinted(&sprite, &tint);
     }
 
     void drawText(const std::string &str, float x, float y, float scale, u32 color)
@@ -69,6 +95,18 @@ public:
         C2D_DrawText(&txt, C2D_WithColor, x, y, 0, scale, scale, color);
     }
 
+    void drawTextCentered(const std::string &str, float cx, float y, float scale, u32 color, bool centerY = false)
+    {
+        C2D_Text txt;
+        C2D_TextFontParse(&txt, font, buf, str.c_str());
+        C2D_TextOptimize(&txt);
+        float w = 0, h = 0;
+        C2D_TextGetDimensions(&txt, scale, scale, &w, &h);
+        if (centerY) y -= h / 2;
+        C2D_DrawText(&txt, C2D_WithColor, floorf(cx - w / 2), floorf(y), 0, scale, scale, color);
+    }
+
+    // Texte sans le décalage 3D, pour l'interface
     void drawTextUI(const std::string &str, float x, float y, float scale, u32 color)
     {
         C2D_Text txt;
@@ -85,6 +123,13 @@ public:
         return C2D_Image{};
     }
 
+private:
+    static constexpr int MAX_LAYERS = 4;
+    C3D_Mtx layerStack[MAX_LAYERS];
+    int layerCount = 0;
+
+public:
+
     void drawImageRotated(const std::string &key, int index, float x, float y, float sizeX, float sizeY, float angle)
     {
         auto it = sheets.find(key);
@@ -93,7 +138,7 @@ public:
 
         C2D_Sprite sprite;
         C2D_SpriteFromSheet(&sprite, it->second, index);
-        C2D_SpriteSetCenter(&sprite, 0.5f, 0.5f); // pivot au centre
+        C2D_SpriteSetCenter(&sprite, 0.5f, 0.5f);
         C2D_SpriteSetPos(&sprite, x, y);
         C2D_SpriteSetScale(&sprite, sizeX, sizeY);
         C2D_SpriteSetRotation(&sprite, angle);

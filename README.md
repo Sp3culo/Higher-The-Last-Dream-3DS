@@ -1,50 +1,44 @@
-# 🎮 Higher: The Last Dream — 3DS Visit Card
-
-> An interactive business card for the Nintendo 3DS, showcasing the game **Higher: The Last Dream** by **Sp3culo**.
-
+# Higher: The Last Dream - 3DS Visit Card
 ---
 
-## 📸 Overview
-
-This homebrew 3DS application serves as a digital business card / demo showcase for the game *Higher: The Last Dream*. It features:
-
-- Animated logo with touch-triggered spin effect on the **top screen**
-- Blinking prompt and social links (Steam & Discord) on the **bottom screen**
-- Full **stereoscopic 3D** support via the 3D slider
-- Smooth **scene fade transitions**
-- **Audio** playback on launch
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-Higher_Caard/
+3DS_Visit_Caard/
 ├── source/
-│   ├── main.cpp                    # Entry point, render loop
+│   ├── main.cpp                    # Entry point, asset loading, render loop
 │   ├── scenes/
-│   │   ├── MainMenuTop.hpp         # Top screen scene (logo, touch spin)
-│   │   └── MainMenuBot.hpp         # Bottom screen scene (Steam & Discord)
+│   │   ├── MainMenuTop.hpp         # Top screen menu (logo, touch spin)
+│   │   ├── MainMenuBot.hpp         # Bottom screen menu (QR codes)
+│   │   ├── GameTop.hpp             # Top screen gameplay
+│   │   └── GameBot.hpp             # Bottom screen gameplay
 │   └── scripts/
 │       ├── SceneManager.hpp        # Scene lifecycle & fade system
 │       ├── Renderer.hpp            # citro2d drawing wrapper
-│       ├── AudioManager.hpp        # ndsp WAV audio playback
 │       ├── Coroutine.hpp           # Frame-based timer utility
-│       ├── Animation.hpp           # Sprite animation helper
-│       └── UIAlign.hpp             # Screen alignment constants
-├── romfs/
-│   ├── assets/                     # .t3x sprite sheets (logo, backgrounds, icons)
-│   └── fonts/                      # .bcfnt custom font
-├── icon.png                        # Home menu icon (48x48)
-├── banner.bin                      # Home menu banner
-├── app.rsf                         # 3DS app metadata (title, region, etc.)
-├── Makefile                        # devkitARM build system
-└── generate/                       # Asset generation scripts
+│       ├── PostFX.hpp              # Post-processing (vignette)
+│       ├── Background.hpp          # Parallax background layers
+│       ├── Player.hpp              # Player controller & animation
+│       ├── TileMap.hpp / World.hpp # CSV tile maps & level prefabs
+│       └── GameState.hpp           # Shared game state
+├── romfs/                          # Packed into the app: only runtime files here
+│   ├── assets/                     # .t3x textures
+│   ├── fonts/                      # .bcfnt custom font
+│   └── maps/                       # Level prefabs (CSV)
+├── gfx/                            # Source art (NOT packed into the app)
+│   ├── banner/                     # HOME menu banner (png, wav, cgfx, glb)
+│   ├── src/ player/ postfx/        # Source PNGs for the .t3x textures
+│   └── qr/                         # Generated QR code PNGs
+├── shell/
+│   └── run.sh                      # Launches the .3dsx in Azahar
+├── icon.png                        # HOME menu icon (48x48)
+├── app.rsf                         # CIA metadata (title, region, etc.)
+└── Makefile                        # devkitARM build system
 ```
 
 ---
 
-## 🛠️ Building
+## Building
 
 ### Prerequisites
 
@@ -60,96 +54,30 @@ dkp-pacman -S 3ds-dev
 ### Compile
 
 ```bash
-make
+make clean && make
 ```
 
 This generates:
-- `Higher_Caard.3dsx` — for use with [Homebrew Launcher](https://smealum.github.io/3ds/)
-- `Higher_Caard.cia` — installable via FBI (requires `makerom` and a valid `app.rsf`)
+- `Higher_The_Last_Dream.3dsx` — for use with [Homebrew Launcher](https://smealum.github.io/3ds/)
+- `Higher_The_Last_Dream.cia` — installable via FBI, built with `make cia` (requires `makerom` and `bannertool`)
+
+The CIA uses `icon.png` as the HOME menu icon, and `gfx/banner/banner.png` (logo, 256x128) + `gfx/banner/banner.wav` (3 s max) as the top-screen banner.
 
 ---
-
-## 🖼️ Assets
-
-All assets live in `romfs/assets/` as `.t3x` sprite sheets (compiled with `tex3ds`).
-
-| Key              | File                    | Usage                        |
-|------------------|-------------------------|------------------------------|
-| `background_top` | `output_top.t3x`        | Top screen background        |
-| `background_bot` | `output_bottom.t3x`     | Bottom screen background     |
-| `menu`           | `logo.t3x`              | Game logo (animated spin)    |
-| `steam`          | `steam.t3x`             | Steam icon                   |
-| `discord`        | `discord.t3x`           | Discord icon                 |
-| `level`          | `bglevel_1.t3x`         | Level background (reserved)  |
 
 ### Converting Images
 
-Images must be pre-processed before converting to `.t3x`. Use ImageMagick to swap BGR channels and rotate for the 3DS framebuffer format:
+Source PNGs live in `gfx/`; never put them in `romfs/`, everything there is packed into the app. Convert them to `.t3x` with `tex3ds` (devkitPro).
 
-```bash
-convert input.png \
-  -channel B -separate input.png \
-  -channel G -separate input.png \
-  -channel R -separate \
-  -channel RGB -combine \
-  -rotate 90 output.rgb
-```
+## Links
 
-Then rename `output.rgb` → `output.bin` and place it in the `data/` folder, or convert to `.t3x` using `tex3ds`.
-
-> ⚠️ The 3DS top/bottom screens are portrait displays rotated 90°, and use BGR888 color order — hence the channel swap and rotation.
+- **Steam Page** : https://store.steampowered.com/app/3722970/Higher_The_Last_Dream/
+- **Discord Community** : https://discord.gg/3qDbjFXFe9 
+- **Itch.io Page** : https://sp3culo.itch.io/highergame
+- **Official Website** : https://highergame.fr/
 
 ---
 
-## 🔊 Audio
-
-Audio is handled via `ndsp` (Nintendo DSP). Sounds must be in uncompressed **PCM WAV** format and placed in `romfs/`.
-
-Load and play a sound:
-```cpp
-audioManager.load("menu", "romfs:/audio/menu.wav");
-audioManager.play("menu", /* loop = */ false);
-```
-
----
-
-## 🌐 Features
-
-### Stereoscopic 3D
-The top screen renders twice (left eye / right eye) with a configurable pixel offset driven by the 3D slider:
-```cpp
-float offset = osGet3DSliderState() * 6.0f;
-sceneManagerTop.setEyeOffset(-offset); // left eye
-sceneManagerTop.setEyeOffset(+offset); // right eye
-```
-
-### Touch Interaction
-Touching the touchscreen triggers a full 360° logo spin on the top screen with ease-out deceleration.
-
-### Scene System
-Scenes extend the `Scene` base class and implement `update()` and `draw()`. Transition between scenes with a fade-to-black:
-```cpp
-goToTop("MainMenuTop");
-goToBot("MainMenuBot");
-```
-
----
-
-## 👥 Credits
-
-| Role         | Person      |
-|--------------|-------------|
-| Development  | Sp3culo     |
-
----
-
-## 🔗 Links
-
-- 🎮 **Steam Page** — coming soon
-- 💬 **Discord Community** — join via the in-app QR / link on the bottom screen
-
----
-
-## 📄 License
+## License
 
 This project is a promotional homebrew tool for *Higher: The Last Dream*. All game assets are © their respective owners.

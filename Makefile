@@ -1,6 +1,4 @@
-#---------------------------------------------------------------------------------
 .SUFFIXES:
-#---------------------------------------------------------------------------------
 
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
@@ -9,19 +7,21 @@ endif
 TOPDIR ?= $(CURDIR)
 include $(DEVKITARM)/3ds_rules
 
-#---------------------------------------------------------------------------------
-TARGET		:=	Higher_Caard
+TARGET		:=	Higher_The_Last_Dream
 BUILD		:=	build
 FINAL_OUTDIR	:=	$(CURDIR)/$(BUILD)/3ds
 SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 ROMFS		:=	romfs
-APP_TITLE	:=	Higher Visit Caard
-APP_DESCRIPTION	:=	A 3DS Visit Caard for the 3DS Homebrew community.
+APP_TITLE	:=	Higher : The Last Dream
+APP_DESCRIPTION	:=	A Promotional 3DS Game for Higher : The Last Dream
 APP_AUTHOR	:=	Sp3culo
+APP_ICON	:=	$(TOPDIR)/icon.png
+BANNER_IMAGE	:=	$(TOPDIR)/gfx/banner/banner.png
+BANNER_AUDIO	:=	$(TOPDIR)/gfx/banner/banner.wav
+BANNER_CGFX	:=	$(TOPDIR)/gfx/banner/banner.cgfx
 
-#---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 
 CFLAGS	:=	-g -Wall -O2 -mword-relocations \
@@ -37,12 +37,9 @@ LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 LIBS	:=	-lcitro2d -lcitro3d -lctru -lm
 
-#---------------------------------------------------------------------------------
 LIBDIRS	:=	$(PORTLIBS) $(CTRULIB)
 
-#---------------------------------------------------------------------------------
 ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
 
 export OUTPUT	:=	$(FINAL_OUTDIR)/$(TARGET)
 export TOPDIR	:=	$(CURDIR)
@@ -82,9 +79,18 @@ ifneq ($(ROMFS),)
 	export _3DSXFLAGS += --romfs=$(CURDIR)/$(ROMFS)
 endif
 
-.PHONY: $(BUILD) clean all
+.PHONY: $(BUILD) clean all cia
 
 all: $(BUILD)
+
+cia: $(BUILD)
+	@bannertool makebanner $(if $(wildcard $(BANNER_CGFX)),-ci $(BANNER_CGFX),-i $(BANNER_IMAGE)) \
+		-a $(BANNER_AUDIO) -o $(BUILD)/banner.bnr
+	@bannertool makesmdh -s "$(APP_TITLE)" -l "$(APP_DESCRIPTION)" -p "$(APP_AUTHOR)" \
+		-i $(APP_ICON) -o $(BUILD)/icon.icn
+	@makerom -f cia -o $(OUTPUT).cia -elf $(OUTPUT).elf -rsf $(CURDIR)/app.rsf \
+		-icon $(BUILD)/icon.icn -banner $(BUILD)/banner.bnr -exefslogo -target t
+	@echo built ... $(notdir $(OUTPUT)).cia
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
@@ -95,9 +101,7 @@ clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf
 
-#---------------------------------------------------------------------------------
 else
-#---------------------------------------------------------------------------------
 
 DEPENDS	:=	$(OFILES:.o=.d)
 
@@ -116,6 +120,4 @@ $(OUTPUT).elf	:	$(OFILES)
 
 -include $(DEPENDS)
 
-#---------------------------------------------------------------------------------
 endif
-#---------------------------------------------------------------------------------

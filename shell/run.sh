@@ -1,10 +1,10 @@
 #!/bin/bash
 
 PROJET=~/Projects/3DS_Visit_Caard
-FICHIER="$PROJET/build/3ds/Higher_Caard.3dsx"
+FICHIER="$PROJET/build/3ds/Higher_The_Last_Dream.3dsx"
 
 if [ ! -f "$FICHIER" ]; then
-    echo "3DSProject.3dsx introuvable, build en cours..."
+    echo "Higher_The_Last_Dream.3dsx introuvable, build en cours..."
     cd "$PROJET" && make
     if [ $? -ne 0 ]; then
         echo "Erreur de build."
