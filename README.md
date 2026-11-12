@@ -1,5 +1,7 @@
 # Higher: The Last Dream - 3DS Visit Card
 ---
+## Release Builds
+https://github.com/Sp3culo/Higher-The-Last-Dream-3DS/releases
 
 ## Project Structure
 
